@@ -20,6 +20,9 @@ dependencies = [
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[project.scripts]
+investment-analyst = "investment_analyst.main:run"
+
 [dependency-groups]
 dev = [
     "pytest>=9.0.2",

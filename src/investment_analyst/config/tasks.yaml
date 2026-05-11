@@ -1,0 +1,76 @@
+collect_financial_data_task:
+  description: >
+    Colete os dados financeiros dos ativos da carteira informada pelo usuário.
+
+    Carteira:
+    {portfolio}
+
+    Busque preços, dividendos, indicadores, setor, classe do ativo, liquidez e dados
+    históricos relevantes.
+  expected_output: >
+    Um resumo estruturado dos dados coletados para cada ativo da carteira.
+
+fundamental_analysis_task:
+  description: >
+    Analise os fundamentos dos ativos coletados. Considere qualidade, valuation,
+    dividendos, rentabilidade, endividamento, consistência histórica e perspectivas.
+  expected_output: >
+    Uma análise fundamentalista clara de cada ativo, apontando pontos fortes,
+    pontos fracos e riscos relevantes.
+
+sentiment_analysis_task:
+  description: >
+    Analise notícias recentes, eventos relevantes e sentimento de mercado envolvendo
+    os ativos da carteira.
+  expected_output: >
+    Um resumo dos principais eventos recentes, riscos de curto prazo e possíveis
+    impactos sobre os ativos.
+
+risk_analysis_task:
+  description: >
+    Avalie os riscos da carteira considerando diversificação, concentração por ativo,
+    concentração por setor, liquidez, volatilidade, classe dos ativos e compatibilidade
+    com o perfil do usuário.
+
+    Perfil do usuário:
+    {risk_profile}
+  expected_output: >
+    Um diagnóstico de risco da carteira com alertas, pontos críticos e recomendações
+    de atenção.
+
+financial_planning_task:
+  description: >
+    Avalie os objetivos financeiros do usuário e compare com a carteira atual.
+
+    Objetivos financeiros:
+    {financial_goals}
+
+    Considere patrimônio atual, renda desejada, horizonte de tempo, aportes mensais
+    e realidade financeira do usuário.
+  expected_output: >
+    Um plano financeiro realista indicando se os objetivos são viáveis, quais ajustes
+    são necessários e quais caminhos podem aproximar o usuário da meta.
+
+recommendation_validation_task:
+  description: >
+    Revise todas as análises e recomendações produzidas. Remova ou ajuste qualquer
+    recomendação incompatível com o perfil, patrimônio, prazo, risco ou saúde financeira
+    do usuário.
+  expected_output: >
+    Recomendações finais validadas, prudentes, justificadas e alinhadas ao objetivo
+    financeiro do usuário.
+
+final_report_task:
+  description: >
+    Gere o relatório final consolidando:
+    - diagnóstico da carteira
+    - análise fundamentalista
+    - sentimento de mercado
+    - riscos
+    - plano financeiro
+    - recomendações finais validadas
+
+    O relatório deve ser claro, estruturado e adequado para exportação em PDF.
+  expected_output: >
+    Um relatório final em Markdown com seções bem organizadas, linguagem acessível
+    e recomendações acionáveis.
