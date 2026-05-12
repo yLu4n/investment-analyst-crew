@@ -23,9 +23,16 @@ class NewsScraperTool(BaseTool):
             "apiKey": api_key,
         }
 
-        response = requests.get(url, params=params)
-        response.raise_for_status()
-        articles = response.json().get("articles", [])
+        try:
+            response = requests.get(url, params=params, timeout=20)
+            response.raise_for_status()
+            articles = response.json().get("articles", [])
+        except requests.exceptions.Timeout:
+            return [{"error": "A busca de notícias excedeu o tempo limite."}]
+        except requests.exceptions.HTTPError as e:
+            return [{"error": f"Erro HTTP ao buscar notícias: {str(e)}"}]
+        except Exception as e:
+            return [{"error": f"Erro ao buscar notícias: {str(e)}"}]
 
         return [
             {

@@ -1,5 +1,8 @@
 import os
+import re
 from datetime import datetime
+from xml.sax.saxutils import escape
+
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
 from typing import Type
@@ -47,7 +50,7 @@ def _get_styles():
         "h1": ParagraphStyle(
             "H1", parent=styles["Heading1"],
             fontSize=14, textColor=colors.HexColor("#1a1a2e"),
-            spaceBefore=16, spaceAfter=6,
+            spaceBefore=16, spaceAfter=6, alignment=TA_LEFT,
         ),
         "h2": ParagraphStyle(
             "H2", parent=styles["Heading2"],
@@ -76,46 +79,133 @@ def _get_styles():
 def _parse_conteudo(conteudo: str, styles: dict) -> list:
     """Converte texto markdown-like em elementos ReportLab."""
     story = []
-    for linha in conteudo.split("\n"):
+    linhas = conteudo.split("\n")
+    index = 0
+
+    while index < len(linhas):
+        linha = linhas[index].strip()
         linha = linha.strip()
         if not linha:
             story.append(Spacer(1, 0.2*cm))
+            index += 1
+            continue
+
+        if _is_table_start(linhas, index):
+            table_lines = []
+            while index < len(linhas) and _is_table_line(linhas[index]):
+                table_lines.append(linhas[index].strip())
+                index += 1
+            story.append(_build_markdown_table(table_lines, styles))
+            story.append(Spacer(1, 0.3*cm))
+            continue
+
+        if linha in {"---", "***", "___"}:
+            story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor("#cccccc")))
+            index += 1
             continue
 
         if linha.startswith("# ") or (linha.isupper() and len(linha) < 60):
             texto = linha.lstrip("# ").strip()
-            story.append(Paragraph(texto, styles["h1"]))
+            story.append(Paragraph(_convert_markdown(texto), styles["h1"]))
             story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor("#cccccc")))
+            index += 1
             continue
 
         if linha.startswith("## "):
             texto = linha.lstrip("# ").strip()
-            story.append(Paragraph(texto, styles["h2"]))
+            story.append(Paragraph(_convert_markdown(texto), styles["h2"]))
+            index += 1
+            continue
+
+        if linha.startswith("### "):
+            texto = linha.lstrip("# ").strip()
+            story.append(Paragraph(_convert_markdown(texto), styles["h2"]))
+            index += 1
             continue
 
         if linha.startswith("* ") or linha.startswith("- ") or linha.startswith("• "):
             texto = linha.lstrip("*-• ").strip()
             texto = _convert_markdown(texto)
             story.append(Paragraph(f"• {texto}", styles["bullet"]))
+            index += 1
             continue
 
         if linha.startswith("**") and linha.endswith("**"):
             texto = linha.strip("*")
-            story.append(Paragraph(f"<b>{texto}</b>", styles["corpo"]))
+            story.append(Paragraph(f"<b>{escape(texto)}</b>", styles["corpo"]))
+            index += 1
             continue
 
         texto = _convert_markdown(linha)
         story.append(Paragraph(texto, styles["corpo"]))
+        index += 1
 
     return story
 
 
 def _convert_markdown(texto: str) -> str:
     """Converte **negrito** e *itálico* para tags ReportLab."""
-    import re
+    texto = escape(texto)
     texto = re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', texto)
     texto = re.sub(r'\*(.+?)\*', r'<i>\1</i>', texto)
     return texto
+
+
+def _is_table_line(line: str) -> bool:
+    stripped = line.strip()
+    return stripped.startswith("|") and stripped.endswith("|")
+
+
+def _is_table_start(lines: list[str], index: int) -> bool:
+    if index + 1 >= len(lines):
+        return False
+    return _is_table_line(lines[index]) and _is_table_separator(lines[index + 1])
+
+
+def _is_table_separator(line: str) -> bool:
+    if not _is_table_line(line):
+        return False
+    cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+    return all(re.fullmatch(r":?-{3,}:?", cell or "") for cell in cells)
+
+
+def _split_table_row(line: str) -> list[str]:
+    return [cell.strip() for cell in line.strip().strip("|").split("|")]
+
+
+def _build_markdown_table(table_lines: list[str], styles: dict) -> Table:
+    rows = [
+        _split_table_row(line)
+        for line in table_lines
+        if not _is_table_separator(line)
+    ]
+    if not rows:
+        return Table([[""]])
+
+    column_count = max(len(row) for row in rows)
+    normalized_rows = []
+    for row in rows:
+        padded_row = row + [""] * (column_count - len(row))
+        normalized_rows.append(
+            [Paragraph(_convert_markdown(cell), styles["corpo"]) for cell in padded_row]
+        )
+
+    table = Table(
+        normalized_rows,
+        colWidths=[16.5 * cm / column_count] * column_count,
+        repeatRows=1,
+    )
+    table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1a1a2e")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 8),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("GRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#d8d8d8")),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f7f8fa")]),
+        ("PADDING", (0, 0), (-1, -1), 5),
+    ]))
+    return table
 
 
 def _build_header(ticker: str, styles: dict, data_str: str = None) -> list:
@@ -160,6 +250,11 @@ def _build_footer(story: list, styles: dict):
 
 def _build_pdf(filename: str, ticker: str, conteudo: str):
     """Gera PDF de um único ativo."""
+    build_markdown_pdf(filename, ticker, conteudo)
+
+
+def build_markdown_pdf(filename: str, ticker: str, conteudo: str):
+    """Gera PDF de um relatório Markdown."""
     doc = SimpleDocTemplate(
         filename, pagesize=A4,
         rightMargin=2*cm, leftMargin=2*cm,

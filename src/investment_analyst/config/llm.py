@@ -14,13 +14,13 @@ def get_llm() -> LLM:
         return LLM(
             model=os.getenv(
                 "OPENROUTER_MODEL",
-                "openrouter/anthropic/claude-3.5-sonnet",
+                "openrouter/inclusionai/ring-2.6-1t:free",
             ),
             api_key=os.getenv("OPENROUTER_API_KEY"),
             base_url="https://openrouter.ai/api/v1",
         )
 
     return LLM(
-        model=os.getenv("GEMINI_MODEL", "gemini/gemini-1.5-flash"),
+        model=os.getenv("GEMINI_MODEL", "gemini/gemini-2.5-flash"),
         api_key=os.getenv("GEMINI_API_KEY"),
     )

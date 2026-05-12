@@ -20,6 +20,9 @@ dependencies = [
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.uv]
+package = true
+
 [project.scripts]
 investment-analyst = "investment_analyst.main:run"
 

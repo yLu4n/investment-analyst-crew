@@ -19,16 +19,16 @@ class FinancialDataTool(BaseTool):
         
         token = os.getenv("BRAPI_TOKEN")
         url = f"https://brapi.dev/api/quote/{ticker}"
-        headers ={
-            "Authorization": f"Bearer {token}",
-        }
+        headers = {"Authorization": f"Bearer {token}"} if token else {}
         params = {
             "fundamental": "true",
-            "history": "true",
+            "dividends": "true",
+            "range": "1mo",
+            "interval": "1d",
         }
         
         try:
-            response = requests.get(url, headers=headers, params=params)
+            response = requests.get(url, headers=headers, params=params, timeout=20)
             response.raise_for_status()
             data = response.json()
 

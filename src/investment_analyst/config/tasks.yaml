@@ -5,18 +5,30 @@ collect_financial_data_task:
     Carteira:
     {portfolio}
 
+    Dados de mercado já coletados antes da análise:
+    {market_data}
+
+    Cálculos determinísticos já preparados:
+    {deterministic_analysis}
+
     Busque preços, dividendos, indicadores, setor, classe do ativo, liquidez e dados
-    históricos relevantes.
+    históricos relevantes. Não recalcule preço médio, custo, valor atual, retorno,
+    projeções ou capital necessário. Use os resultados determinísticos como fonte
+    de verdade e apenas indique quando algum dado de mercado estiver ausente.
   expected_output: >
-    Um resumo estruturado dos dados coletados para cada ativo da carteira.
+    Um resumo estruturado dos dados coletados para cada ativo da carteira, incluindo
+    uma seção de qualidade dos dados e os valores determinísticos recebidos.
 
 fundamental_analysis_task:
   description: >
     Analise os fundamentos dos ativos coletados. Considere qualidade, valuation,
     dividendos, rentabilidade, endividamento, consistência histórica e perspectivas.
+    Não faça cálculos financeiros novos; use apenas os dados coletados e os resultados
+    em {deterministic_analysis} para embasar a interpretação.
   expected_output: >
     Uma análise fundamentalista clara de cada ativo, apontando pontos fortes,
-    pontos fracos e riscos relevantes.
+    pontos fracos e riscos relevantes. Explique termos técnicos como P/L, dividend
+    yield, valuation e liquidez em linguagem simples.
 
 sentiment_analysis_task:
   description: >
@@ -34,6 +46,12 @@ risk_analysis_task:
 
     Perfil do usuário:
     {risk_profile}
+
+    Use os dados determinísticos de concentração e retorno:
+    {deterministic_analysis}
+
+    Não recalcule as métricas recebidas. Interprete os números e explique o impacto
+    prático para um investidor iniciante e para um investidor intermediário.
   expected_output: >
     Um diagnóstico de risco da carteira com alertas, pontos críticos e recomendações
     de atenção.
@@ -45,8 +63,13 @@ financial_planning_task:
     Objetivos financeiros:
     {financial_goals}
 
+    Cálculos determinísticos de preço médio, patrimônio atual, simulação de aportes,
+    juros compostos e capital necessário:
+    {deterministic_analysis}
+
     Considere patrimônio atual, renda desejada, horizonte de tempo, aportes mensais
-    e realidade financeira do usuário.
+    e realidade financeira do usuário. Não refaça cálculos; explique os resultados
+    recebidos de forma didática e com exemplos simples.
   expected_output: >
     Um plano financeiro realista indicando se os objetivos são viáveis, quais ajustes
     são necessários e quais caminhos podem aproximar o usuário da meta.
@@ -63,14 +86,28 @@ recommendation_validation_task:
 final_report_task:
   description: >
     Gere o relatório final consolidando:
-    - diagnóstico da carteira
-    - análise fundamentalista
-    - sentimento de mercado
-    - riscos
-    - plano financeiro
-    - recomendações finais validadas
+    1. Resumo Executivo
+    2. Dados Estruturados da Carteira
+    3. Análise Fundamentalista
+    4. Análise de Sentimento de Mercado
+    5. Diagnóstico Completo de Riscos
+    6. Plano Financeiro e Projeções
+    7. Recomendações Finais Consolidadas
+    8. Resumo Visual
+    9. Aviso Legal
 
-    O relatório deve ser claro, estruturado e adequado para exportação em PDF.
+    Use a mesma estrutura e tópicos do relatório de referência já existente em
+    outputs/investment_report.md. O relatório deve ser claro, estruturado e adequado
+    para exportação em PDF.
+
+    Regras obrigatórias:
+    - Não faça cálculos novos no texto.
+    - Use os resultados de {deterministic_analysis} como fonte de verdade.
+    - Explique termos técnicos em linguagem simples, com exemplos curtos.
+    - Escreva para usuários iniciantes e intermediários.
+    - Diferencie dado observado, hipótese de projeção e recomendação prudencial.
+    - Não prometa rentabilidade e não apresente o relatório como recomendação
+      personalizada definitiva.
   expected_output: >
     Um relatório final em Markdown com seções bem organizadas, linguagem acessível
     e recomendações acionáveis.
