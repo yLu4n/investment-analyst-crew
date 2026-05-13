@@ -15,9 +15,20 @@ collect_financial_data_task:
     históricos relevantes. Não recalcule preço médio, custo, valor atual, retorno,
     projeções ou capital necessário. Use os resultados determinísticos como fonte
     de verdade e apenas indique quando algum dado de mercado estiver ausente.
-  expected_output: >
-    Um resumo estruturado dos dados coletados para cada ativo da carteira, incluindo
-    uma seção de qualidade dos dados e os valores determinísticos recebidos.
+  expected_output: |
+    Responda em Markdown com estas seções obrigatórias:
+    1. Resumo de Cobertura: quantidade de ativos analisados, classes identificadas,
+       cobertura dos dados e principais lacunas.
+    2. Dados por Ativo: para cada ativo, informe ticker, classe do ativo, setor,
+       preço/valor de mercado, dividendos, indicadores, liquidez, dados históricos
+       relevantes e observações objetivas.
+    3. Valores Determinísticos Recebidos: reproduza de forma organizada os valores de
+       {deterministic_analysis} usados como fonte de verdade, sem recalcular.
+    4. Qualidade dos Dados: destaque campos ausentes, inconsistências, baixa
+       confiabilidade, defasagem temporal e impacto prático dessas limitações.
+    5. Pendências e Ausências: liste explicitamente qualquer campo não encontrado como
+       "Não disponível".
+    Use tabelas e listas sempre que isso melhorar a leitura.
 
 fundamental_analysis_task:
   description: >
@@ -25,18 +36,36 @@ fundamental_analysis_task:
     dividendos, rentabilidade, endividamento, consistência histórica e perspectivas.
     Não faça cálculos financeiros novos; use apenas os dados coletados e os resultados
     em {deterministic_analysis} para embasar a interpretação.
-  expected_output: >
-    Uma análise fundamentalista clara de cada ativo, apontando pontos fortes,
-    pontos fracos e riscos relevantes. Explique termos técnicos como P/L, dividend
-    yield, valuation e liquidez em linguagem simples.
+  expected_output: |
+    Responda em Markdown com estas seções obrigatórias:
+    1. Visão Geral: resumo comparativo curto dos ativos analisados.
+    2. Análise por Ativo: para cada ativo, cubra qualidade do negócio, valuation,
+       dividendos, rentabilidade, endividamento, consistência histórica e
+       perspectivas, sempre separando pontos fortes, pontos fracos e riscos.
+    3. Leitura dos Indicadores: explique em linguagem simples os indicadores usados
+       no texto, como P/L, dividend yield, valuation, liquidez, rentabilidade e
+       endividamento.
+    4. Dependência dos Dados: deixe claro quando uma conclusão estiver limitada por
+       dados ausentes, defasados ou pouco confiáveis.
+    5. Conclusão Prudente: encerre cada ativo com uma leitura equilibrada, sem criar
+       números ou premissas fora dos dados coletados.
 
 sentiment_analysis_task:
   description: >
     Analise notícias recentes, eventos relevantes e sentimento de mercado envolvendo
     os ativos da carteira.
-  expected_output: >
-    Um resumo dos principais eventos recentes, riscos de curto prazo e possíveis
-    impactos sobre os ativos.
+  expected_output: |
+    Responda em Markdown com estas seções obrigatórias:
+    1. Panorama Geral: sentimento predominante e principais temas observados.
+    2. Eventos por Ativo: para cada ativo, liste eventos/notícias relevantes com
+       data aproximada, resumo objetivo, tom do sentimento (positivo, neutro ou
+       negativo) e possível impacto de curto prazo.
+    3. Riscos e Catalisadores: destaque fatores que podem aumentar volatilidade ou
+       mudar a percepção do mercado.
+    4. Nível de Confiança: informe quando houver poucas notícias, baixa clareza ou
+       sinais contraditórios.
+    5. Lacunas: registre explicitamente ativos sem cobertura recente como
+       "Sem notícia relevante identificada".
 
 risk_analysis_task:
   description: >
@@ -52,9 +81,19 @@ risk_analysis_task:
 
     Não recalcule as métricas recebidas. Interprete os números e explique o impacto
     prático para um investidor iniciante e para um investidor intermediário.
-  expected_output: >
-    Um diagnóstico de risco da carteira com alertas, pontos críticos e recomendações
-    de atenção.
+  expected_output: |
+    Responda em Markdown com estas seções obrigatórias:
+    1. Resumo Executivo de Risco: leitura curta do nível geral de risco da carteira.
+    2. Diagnóstico Estruturado: avalie diversificação, concentração por ativo,
+       concentração por setor, liquidez, volatilidade, classes dos ativos e aderência
+       ao perfil do usuário, usando os dados de {deterministic_analysis} sem
+       recalcular métricas.
+    3. Impacto por Perfil: explique o significado prático dos riscos para um
+       investidor iniciante e para um investidor intermediário.
+    4. Alertas Prioritários: liste pontos críticos em ordem de severidade, com
+       justificativa objetiva.
+    5. Atenções e Mitigações: apresente recomendações prudenciais de acompanhamento,
+       deixando claro o que exige revisão futura.
 
 financial_planning_task:
   description: >
@@ -70,18 +109,37 @@ financial_planning_task:
     Considere patrimônio atual, renda desejada, horizonte de tempo, aportes mensais
     e realidade financeira do usuário. Não refaça cálculos; explique os resultados
     recebidos de forma didática e com exemplos simples.
-  expected_output: >
-    Um plano financeiro realista indicando se os objetivos são viáveis, quais ajustes
-    são necessários e quais caminhos podem aproximar o usuário da meta.
+  expected_output: |
+    Responda em Markdown com estas seções obrigatórias:
+    1. Diagnóstico de Viabilidade: diga se os objetivos parecem viáveis, parcialmente
+       viáveis ou inviáveis no cenário informado.
+    2. Leitura do Ponto de Partida: organize patrimônio atual, renda desejada,
+       horizonte, aportes e demais dados determinísticos de {deterministic_analysis}
+       sem refazer cálculos.
+    3. Distância até a Meta: explique de forma didática o que os números indicam
+       sobre avanço, insuficiência ou folga em relação aos objetivos.
+    4. Ajustes Possíveis: proponha mudanças realistas em prazo, aportes, expectativa
+       de renda ou disciplina financeira, com exemplos simples.
+    5. Premissas e Limitações: diferencie claramente fatos observados, projeções
+       recebidas e recomendações prudenciais.
 
 recommendation_validation_task:
   description: >
     Revise todas as análises e recomendações produzidas. Remova ou ajuste qualquer
     recomendação incompatível com o perfil, patrimônio, prazo, risco ou saúde financeira
     do usuário.
-  expected_output: >
-    Recomendações finais validadas, prudentes, justificadas e alinhadas ao objetivo
-    financeiro do usuário.
+  expected_output: |
+    Responda em Markdown com estas seções obrigatórias:
+    1. Recomendações Mantidas: liste apenas recomendações compatíveis com perfil,
+       patrimônio, prazo, risco e saúde financeira do usuário.
+    2. Recomendações Ajustadas ou Removidas: identifique o que foi alterado,
+       removido ou suavizado e explique o motivo.
+    3. Teste de Adequação: confirme aderência ao objetivo financeiro, à tolerância a
+       risco e às restrições práticas do usuário.
+    4. Prioridades de Ação: organize as recomendações finais em curto, médio e longo
+       prazo, quando aplicável.
+    5. Alertas Prudenciais: registre ressalvas importantes, incertezas e condições
+       que exigem reavaliação posterior.
 
 final_report_task:
   description: >
@@ -108,6 +166,28 @@ final_report_task:
     - Diferencie dado observado, hipótese de projeção e recomendação prudencial.
     - Não prometa rentabilidade e não apresente o relatório como recomendação
       personalizada definitiva.
-  expected_output: >
-    Um relatório final em Markdown com seções bem organizadas, linguagem acessível
-    e recomendações acionáveis.
+  expected_output: |
+    Entregue um relatório final em Markdown, pronto para exportação em PDF, com estas
+    seções obrigatórias e nesta ordem:
+    1. Resumo Executivo
+    2. Dados Estruturados da Carteira
+    3. Análise Fundamentalista
+    4. Análise de Sentimento de Mercado
+    5. Diagnóstico Completo de Riscos
+    6. Plano Financeiro e Projeções
+    7. Recomendações Finais Consolidadas
+    8. Resumo Visual
+    9. Aviso Legal
+
+    Requisitos de formato:
+    - Use títulos e subtítulos claros em Markdown.
+    - Prefira tabelas e listas para dados comparativos.
+    - Use tabelas Markdown completas, sempre com cabeçalho e linha separadora.
+    - No Resumo Visual, prefira blocos de código fenced com caracteres ASCII
+      simples para barras, caixas e comparações. Evite emojis, box-drawing Unicode
+      e símbolos decorativos que possam não existir nas fontes padrão do PDF.
+    - Diferencie explicitamente dado observado, hipótese/projeção e recomendação.
+    - Referencie os valores de {deterministic_analysis} sem recalcular.
+    - Explique termos técnicos em linguagem simples e direta.
+    - Marque campos ausentes como "Não disponível".
+    - Encerre com recomendações acionáveis, prudentes e compatíveis com o perfil do usuário.
