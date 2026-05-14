@@ -11,7 +11,6 @@ from investment_analyst.services.projection_engine import (
     calculate_required_capital,
     project_compound_growth,
 )
-from investment_analyst.tools.financial_data_tool import FinancialDataTool
 
 
 MarketDataFetcher = Callable[[str], dict[str, Any]]
@@ -62,7 +61,7 @@ def fetch_market_data(
     portfolio: list[dict[str, Any]],
     market_data_fetcher: MarketDataFetcher | None = None,
 ) -> dict[str, dict[str, Any]]:
-    fetcher = market_data_fetcher or FinancialDataTool()._run
+    fetcher = market_data_fetcher or _default_market_data_fetcher
     market_data = {}
 
     for asset in portfolio:
@@ -76,3 +75,8 @@ def fetch_market_data(
 
     return market_data
 
+
+def _default_market_data_fetcher(ticker: str) -> dict[str, Any]:
+    from investment_analyst.tools.financial_data_tool import FinancialDataTool
+
+    return FinancialDataTool()._run(ticker)

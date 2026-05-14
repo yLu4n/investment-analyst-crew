@@ -20,10 +20,11 @@ class InvestmentAnalystCrew:
     
     llm = get_llm()
 
-    def __init__(self):
+    def __init__(self, report_output_path: str = "outputs/investment_report.md"):
         self.financial_data_tool = FinancialDataTool()
         self.news_scraper_tool = NewsScraperTool()
         self.pdf_generator_tool = PDFGeneratorTool()
+        self.report_output_path = report_output_path
 
     @agent
     def data_collector(self) -> Agent:
@@ -132,7 +133,7 @@ class InvestmentAnalystCrew:
         return Task(
             config=self.tasks_config["final_report_task"],
             agent=self.report_generator(),
-            output_file="outputs/investment_report.md",
+            output_file=self.report_output_path,
         )
 
     @crew

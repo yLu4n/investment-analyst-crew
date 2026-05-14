@@ -1,0 +1,2 @@
+[console_scripts]
+investment-analyst = investment_analyst.main:run

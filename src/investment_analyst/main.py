@@ -1,8 +1,7 @@
 from investment_analyst.crew import InvestmentAnalystCrew
-from investment_analyst.services.analysis_preparation_service import build_analysis_inputs
-from investment_analyst.services.report_export_service import (
-    export_markdown_report_to_pdf,
-    read_report_or_result,
+from investment_analyst.services.analysis_application_service import (
+    AnalysisExecutionResult,
+    run_investment_analysis,
 )
 
 
@@ -36,17 +35,19 @@ def run():
         },
     }
 
-    prepared_inputs = build_analysis_inputs(inputs)
-    result = InvestmentAnalystCrew().crew().kickoff(inputs=prepared_inputs)
-    markdown_report = read_report_or_result("outputs/investment_report.md", result)
-    pdf_path = export_markdown_report_to_pdf(
-        markdown_report,
-        prepared_inputs["report_ticker"],
+    result = run_investment_analysis(
+        inputs,
+        crew_runner=_run_crew,
+        export_pdf=True,
     )
 
     print("\n\n=== Resultado da Análise ===\n")
-    print(result)
-    print(f"\nPDF exportado em: {pdf_path}")
+    print(result.result_payload["crew_result"])
+    print(f"\nPDF exportado em: {result.pdf_path}")
+
+
+def _run_crew(prepared_inputs: dict) -> AnalysisExecutionResult | object:
+    return InvestmentAnalystCrew().crew().kickoff(inputs=prepared_inputs)
 
 
 if __name__ == "__main__":
