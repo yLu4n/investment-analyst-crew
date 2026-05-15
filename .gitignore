@@ -1,4 +1,6 @@
 .env
 venv
-.codex
 outputs
+AGENTS.md
+.agents
+.codex
