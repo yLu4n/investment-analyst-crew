@@ -18,6 +18,7 @@ const DEFAULT_ASSETS: AssetInput[] = [
   { ticker: "VALE3", quantity: 60, average_price: 68.1, asset_type: "stock" },
   { ticker: "ITSA4", quantity: 180, average_price: 10.2, asset_type: "stock" },
 ];
+const TICKER_PATTERN = /^[A-Z0-9.]{1,20}$/;
 
 export function Dashboard() {
   const { credits, isPro, consumeCredit } = useSessionState();
@@ -76,8 +77,18 @@ export function Dashboard() {
     const quantity = Number(manualAsset.quantity);
     const averagePrice = Number(manualAsset.average_price);
 
-    if (!ticker || Number.isNaN(quantity) || Number.isNaN(averagePrice)) {
+    if (!TICKER_PATTERN.test(ticker)) {
+      setImportError("Ticker deve conter ate 20 caracteres alfanumericos.");
+      return;
+    }
+
+    if (!Number.isFinite(quantity) || !Number.isFinite(averagePrice)) {
       setImportError("Preencha ticker, quantidade e preco medio com valores validos.");
+      return;
+    }
+
+    if (quantity <= 0 || averagePrice < 0) {
+      setImportError("Quantidade deve ser maior que zero e preco medio nao pode ser negativo.");
       return;
     }
 

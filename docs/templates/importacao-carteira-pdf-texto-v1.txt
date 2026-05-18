@@ -1,0 +1,19 @@
+Template de importacao de carteira v1
+
+Use este conteudo como base para gerar um PDF simples quando o usuario precisar
+importar por PDF. O parser backend extrai texto com pdfplumber e procura uma
+tabela com as colunas abaixo.
+
+Regras:
+- Mantenha uma linha de cabecalho com ticker, quantity e average_price.
+- Use ponto como separador decimal quando possivel.
+- quantity deve ser maior que zero.
+- average_price deve ser maior ou igual a zero.
+- asset_type e opcional; quando vazio, o backend usa stock.
+
+Tabela:
+
+ticker;quantity;average_price;asset_type
+PETR4;100;32.50;stock
+VALE3;50;68.10;stock
+BOVA11;10;112.35;etf

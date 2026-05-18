@@ -1,4 +1,6 @@
 .env
+.env.example
+.env.test.example
 venv
 outputs
 AGENTS.md

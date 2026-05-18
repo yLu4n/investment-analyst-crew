@@ -1,0 +1,4 @@
+ticker,quantity,average_price,asset_type
+PETR4,100,32.50,stock
+VALE3,50,68.10,stock
+BOVA11,10,112.35,etf
