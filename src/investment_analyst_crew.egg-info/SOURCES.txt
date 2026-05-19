@@ -41,6 +41,6 @@ tests/test_job_manager.py
 tests/test_job_repository.py
 tests/test_persistence_migrations.py
 tests/test_portfolio_engine.py
-tests/test_postgres_migration_integration.py
 tests/test_projection_engine.py
 tests/test_security_residual_risks.py
+tests/test_sqlite_migration_integration.py

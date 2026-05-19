@@ -8,6 +8,7 @@ const files = {
   browserClient: "lib/supabase.ts",
   middleware: "middleware.ts",
   authForm: "components/auth-form.tsx",
+  passwordChangeForm: "components/password-change-form.tsx",
   sessionProvider: "components/session-provider.tsx",
   dashboard: "components/dashboard.tsx",
   importParser: "lib/import-parser.ts",
@@ -29,18 +30,21 @@ const checks = [
       source.supabaseConfig.includes("process.env.NEXT_PUBLIC_SUPABASE_URL"),
   },
   {
-    name: "browser Supabase client reads NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    name: "browser Supabase client reads a Supabase public key",
     pass:
       source.browserClient.includes("getSupabasePublicConfig") &&
-      source.supabaseConfig.includes("process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+      source.supabaseConfig.includes("process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY") &&
+      source.supabaseConfig.includes("process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"),
   },
   {
     name: "middleware reads NEXT_PUBLIC_SUPABASE_URL",
     pass: source.supabaseConfig.includes("process.env.NEXT_PUBLIC_SUPABASE_URL"),
   },
   {
-    name: "middleware reads NEXT_PUBLIC_SUPABASE_ANON_KEY",
-    pass: source.supabaseConfig.includes("process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+    name: "middleware reads a Supabase public key",
+    pass:
+      source.supabaseConfig.includes("process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY") &&
+      source.supabaseConfig.includes("process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"),
   },
   {
     name: "middleware validates the authenticated user with getUser",
@@ -56,7 +60,8 @@ const checks = [
       source.browserClient.includes("getSupabasePublicConfig") &&
       source.middleware.includes("getSupabasePublicConfig") &&
       source.supabaseConfig.includes("new URL(url)") &&
-      source.supabaseConfig.includes("anonKey.split"),
+      source.supabaseConfig.includes("anonKey.split") &&
+      source.supabaseConfig.includes("sb_publishable_"),
   },
   {
     name: "session bootstrap uses getUser",
@@ -77,6 +82,20 @@ const checks = [
   {
     name: "signup uses Supabase signUp",
     pass: source.authForm.includes("supabase.auth.signUp("),
+  },
+  {
+    name: "email signup enforces a minimum password length",
+    pass: source.authForm.includes("MIN_PASSWORD_LENGTH = 8") && source.authForm.includes("isPasswordStrongEnough(password)"),
+  },
+  {
+    name: "password reset redirects users to the change password screen",
+    pass:
+      source.authForm.includes("resetPasswordForEmail") &&
+      source.authForm.includes('redirectTo: `${window.location.origin}/alterar-senha`'),
+  },
+  {
+    name: "authenticated password change updates Supabase auth password",
+    pass: source.passwordChangeForm.includes("supabase.auth.updateUser({ password })"),
   },
   {
     name: "upload input accepts CSV and PDF",

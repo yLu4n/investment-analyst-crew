@@ -9,6 +9,7 @@ import { Button, Card, Input, Label } from "@/components/ui";
 import { createSupabaseBrowserClient } from "@/lib/supabase";
 
 type AuthMode = "login" | "signup";
+const MIN_PASSWORD_LENGTH = 8;
 
 export function AuthForm({ mode }: { mode: AuthMode }) {
   const router = useRouter();
@@ -16,16 +17,24 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isResetLoading, setIsResetLoading] = useState(false);
   const isSignup = mode === "signup";
 
   async function handlePasswordAuth(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+    setNotice(null);
 
     const supabase = createSupabaseBrowserClient();
     if (!supabase) {
       setError("Autenticacao indisponivel no momento.");
+      return;
+    }
+
+    if (isSignup && !isPasswordStrongEnough(password)) {
+      setError(`A senha precisa ter pelo menos ${MIN_PASSWORD_LENGTH} caracteres.`);
       return;
     }
 
@@ -59,8 +68,39 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
     router.refresh();
   }
 
+  async function handlePasswordReset() {
+    setError(null);
+    setNotice(null);
+
+    const normalizedEmail = email.trim();
+    if (!normalizedEmail) {
+      setError("Informe seu email para receber o link de troca de senha.");
+      return;
+    }
+
+    const supabase = createSupabaseBrowserClient();
+    if (!supabase) {
+      setError("Autenticacao indisponivel no momento.");
+      return;
+    }
+
+    setIsResetLoading(true);
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+      redirectTo: `${window.location.origin}/alterar-senha`,
+    });
+    setIsResetLoading(false);
+
+    if (resetError) {
+      setError(getSafeAuthErrorMessage(resetError.message));
+      return;
+    }
+
+    setNotice("Se o email estiver cadastrado, enviaremos um link para trocar a senha.");
+  }
+
   async function handleGoogleAuth() {
     setError(null);
+    setNotice(null);
     const supabase = createSupabaseBrowserClient();
     if (!supabase) {
       setError("Autenticacao indisponivel no momento.");
@@ -114,7 +154,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
             <Label>Senha</Label>
             <Input
               autoComplete={isSignup ? "new-password" : "current-password"}
-              minLength={6}
+              minLength={isSignup ? MIN_PASSWORD_LENGTH : undefined}
               required
               type="password"
               value={password}
@@ -126,7 +166,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
               <Label>Confirmar senha</Label>
               <Input
                 autoComplete="new-password"
-                minLength={6}
+                minLength={MIN_PASSWORD_LENGTH}
                 required
                 type="password"
                 value={confirmPassword}
@@ -140,11 +180,28 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
               {error}
             </div>
           )}
+          {notice && (
+            <div className="rounded-lg border border-primary/40 bg-primary/10 p-3 text-sm">
+              {notice}
+            </div>
+          )}
 
           <Button className="w-full" disabled={isLoading} type="submit">
             {isLoading && <Loader2 className="animate-spin" size={17} />}
             {isSignup ? "Cadastrar" : "Entrar"}
           </Button>
+          {!isSignup && (
+            <Button
+              className="w-full"
+              disabled={isResetLoading}
+              type="button"
+              variant="ghost"
+              onClick={handlePasswordReset}
+            >
+              {isResetLoading && <Loader2 className="animate-spin" size={17} />}
+              Esqueci minha senha
+            </Button>
+          )}
         </form>
 
         <p className="mt-5 text-center text-sm text-muted-foreground">
@@ -156,6 +213,10 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
       </Card>
     </main>
   );
+}
+
+function isPasswordStrongEnough(password: string) {
+  return password.length >= MIN_PASSWORD_LENGTH;
 }
 
 function getSafeAuthErrorMessage(message: string) {

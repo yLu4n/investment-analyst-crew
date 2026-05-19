@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui";
 import { getPaginatedAssets } from "@/lib/api";
@@ -10,11 +10,15 @@ import type { AssetInput } from "@/types/analysis";
 export function PortfolioTable({
   assets,
   page,
+  onAddQuantity,
   onPageChange,
+  onRemoveAsset,
 }: {
   assets: AssetInput[];
   page: number;
+  onAddQuantity: (ticker: string) => void;
   onPageChange: (page: number) => void;
+  onRemoveAsset: (ticker: string) => void;
 }) {
   const pageSize = 10;
   const { rows, total, pageCount } = getPaginatedAssets(assets, page, pageSize);
@@ -28,6 +32,7 @@ export function PortfolioTable({
             <th className="px-3 py-3 font-medium">Quantidade</th>
             <th className="px-3 py-3 font-medium">Preco medio</th>
             <th className="px-3 py-3 font-medium">Valor</th>
+            <th className="px-3 py-3 text-right font-medium">Acoes</th>
           </tr>
         </thead>
         <tbody>
@@ -37,11 +42,33 @@ export function PortfolioTable({
               <td className="px-3 py-3">{asset.quantity}</td>
               <td className="px-3 py-3">{formatCurrency(asset.average_price)}</td>
               <td className="px-3 py-3">{formatCurrency(asset.quantity * asset.average_price)}</td>
+              <td className="px-3 py-3">
+                <div className="flex justify-end gap-2">
+                  <Button
+                    aria-label={`Adicionar quantidade em ${asset.ticker}`}
+                    title="Adicionar quantidade"
+                    variant="secondary"
+                    className="h-8 w-8 px-0"
+                    onClick={() => onAddQuantity(asset.ticker)}
+                  >
+                    <Plus size={15} />
+                  </Button>
+                  <Button
+                    aria-label={`Remover ${asset.ticker}`}
+                    title="Remover ativo"
+                    variant="danger"
+                    className="h-8 w-8 px-0"
+                    onClick={() => onRemoveAsset(asset.ticker)}
+                  >
+                    <Trash2 size={15} />
+                  </Button>
+                </div>
+              </td>
             </tr>
           ))}
           {rows.length === 0 && (
             <tr>
-              <td className="px-3 py-8 text-center text-muted-foreground" colSpan={4}>
+              <td className="px-3 py-8 text-center text-muted-foreground" colSpan={5}>
                 Nenhum ativo carregado.
               </td>
             </tr>

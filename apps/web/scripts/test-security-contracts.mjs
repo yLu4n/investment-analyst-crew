@@ -149,10 +149,12 @@ test("Supabase public config validates required environment shape", () => {
   const { getSupabasePublicConfig, isValidSupabaseConfig } = loadTsModule("lib/supabase-config.ts");
   const originalUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const originalAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const originalPublishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
   try {
     delete process.env.NEXT_PUBLIC_SUPABASE_URL;
     delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    delete process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
     assert.equal(getSupabasePublicConfig(), null);
 
     assert.equal(isValidSupabaseConfig(undefined, "header.payload.signature"), false);
@@ -161,13 +163,14 @@ test("Supabase public config validates required environment shape", () => {
     assert.equal(isValidSupabaseConfig("https://example.supabase.co", "short"), false);
     assert.equal(isValidSupabaseConfig("https://example.supabase.co", "not-a-jwt-shaped-key"), false);
     assert.equal(isValidSupabaseConfig("https://example.supabase.co", "header.payload.signature"), true);
+    assert.equal(isValidSupabaseConfig("https://example.supabase.co", "sb_publishable_12345678901234567890"), true);
     assert.equal(isValidSupabaseConfig("http://localhost:54321", "header.payload.signature"), true);
 
     process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "header.payload.signature";
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_12345678901234567890";
     const config = getSupabasePublicConfig();
     assert.equal(config.url, "https://example.supabase.co");
-    assert.equal(config.anonKey, "header.payload.signature");
+    assert.equal(config.anonKey, "sb_publishable_12345678901234567890");
   } finally {
     if (originalUrl === undefined) {
       delete process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -178,6 +181,11 @@ test("Supabase public config validates required environment shape", () => {
       delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     } else {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = originalAnonKey;
+    }
+    if (originalPublishableKey === undefined) {
+      delete process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+    } else {
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = originalPublishableKey;
     }
   }
 });
@@ -383,6 +391,7 @@ test("middleware initializes Supabase auth and validates the user when env is co
 
 test("auth UI and session bootstrap use safe auth paths and env validation messages", () => {
   const authForm = readSource("components/auth-form.tsx");
+  const passwordChangeForm = readSource("components/password-change-form.tsx");
   const sessionProvider = readSource("components/session-provider.tsx");
   const apiSource = readSource("lib/api.ts");
   const envExample = readSource(".env.example");
@@ -395,6 +404,13 @@ test("auth UI and session bootstrap use safe auth paths and env validation messa
   assert.match(authForm, /signInWithPassword\(\{ email, password \}\)/);
   assert.match(authForm, /signUp\(\{/);
   assert.match(authForm, /signInWithOAuth\(\{/);
+  assert.match(authForm, /MIN_PASSWORD_LENGTH = 8/);
+  assert.match(authForm, /isPasswordStrongEnough\(password\)/);
+  assert.match(authForm, /resetPasswordForEmail\(normalizedEmail/);
+  assert.match(authForm, /redirectTo: `\$\{window\.location\.origin\}\/alterar-senha`/);
+  assert.match(passwordChangeForm, /MIN_PASSWORD_LENGTH = 8/);
+  assert.match(passwordChangeForm, /hasPasswordIdentity\(user\)/);
+  assert.match(passwordChangeForm, /supabase\.auth\.updateUser\(\{ password \}\)/);
 
   assert.match(sessionProvider, /supabase\.auth\.getUser\(\)/);
   assert.match(sessionProvider, /supabase\.auth\.onAuthStateChange\(/);
@@ -404,6 +420,7 @@ test("auth UI and session bootstrap use safe auth paths and env validation messa
 
   assert.match(envExample, /^NEXT_PUBLIC_SUPABASE_URL=/m);
   assert.match(envExample, /^NEXT_PUBLIC_SUPABASE_ANON_KEY=/m);
+  assert.match(envExample, /^NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=/m);
 });
 
 test("API client attaches the Supabase Bearer token when a session exists", async () => {

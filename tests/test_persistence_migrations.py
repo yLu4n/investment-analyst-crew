@@ -23,16 +23,20 @@ def test_canonical_tables_are_tenant_scoped_with_constraints_and_indexes():
     sql = normalized(canonical_migration_sql())
 
     for table_name in ("users", "wallets", "assets", "transactions"):
-        assert f"create table if not exists public.{table_name}" in sql
+        assert f"create table if not exists {table_name}" in sql
 
-    assert "foreign key (user_id) references public.users (id) on delete cascade" in sql
+    assert "pragma foreign_keys = on" in sql
+    assert "foreign key (user_id) references users (id) on delete cascade" in sql
     assert (
-        "foreign key (wallet_id, user_id) references public.wallets (id, user_id) "
+        "foreign key (wallet_id, user_id) references wallets (id, user_id) "
         "on delete cascade"
     ) in sql
     assert "constraint uq_wallets_id_user_id unique (id, user_id)" in sql
     assert "constraint uq_assets_user_id_wallet_id_ticker unique (user_id, wallet_id, ticker)" in sql
-    assert "constraint ck_transactions_type_buy_or_sell check (transaction_type in ('buy', 'sell'))" in sql
+    assert (
+        "constraint ck_transactions_type_buy_or_sell check "
+        "(lower(trim(transaction_type)) in ('buy', 'sell'))"
+    ) in sql
     assert "constraint ck_transactions_quantity_positive check (quantity > 0)" in sql
     assert "constraint ck_assets_quantity_positive check (quantity > 0)" in sql
 
@@ -51,40 +55,39 @@ def test_canonical_tables_are_tenant_scoped_with_constraints_and_indexes():
 def test_transaction_trigger_upserts_buys_recalculating_average_price():
     sql = normalized(canonical_migration_sql())
 
-    assert "create or replace function public.apply_transaction_to_asset_position()" in sql
-    assert "returns trigger" in sql
-    assert "if new.transaction_type = 'buy' then" in sql
-    assert "delta_cost_basis := (new.quantity * new.price) + new.fees" in sql
-    assert "insert into public.assets" in sql
+    assert "create trigger if not exists trg_transactions_apply_asset_position_buy" in sql
+    assert "after insert on transactions" in sql
+    assert "when lower(trim(new.transaction_type)) = 'buy'" in sql
+    assert "insert into assets" in sql
     assert "on conflict (user_id, wallet_id, ticker) do update" in sql
-    assert "insert into public.assets as asset_position" in sql
-    assert "quantity = asset_position.quantity + excluded.quantity" in sql
-    assert "cost_basis = asset_position.cost_basis + excluded.cost_basis" in sql
+    assert "quantity = assets.quantity + excluded.quantity" in sql
+    assert "cost_basis = assets.cost_basis + excluded.cost_basis" in sql
     assert (
-        "average_price = ( asset_position.cost_basis + excluded.cost_basis ) / "
-        "( asset_position.quantity + excluded.quantity )"
+        "average_price = ( assets.cost_basis + excluded.cost_basis ) * 1.0 / "
+        "( assets.quantity + excluded.quantity )"
     ) in sql
 
 
 def test_transaction_trigger_rejects_oversell_and_deletes_zero_position():
     sql = normalized(canonical_migration_sql())
 
-    assert "if new.transaction_type = 'sell' then" in sql
-    assert "from public.assets" in sql
-    assert "where user_id = new.user_id and wallet_id = new.wallet_id and ticker = new.ticker" in sql
-    assert "for update" in sql
-    assert "if not found or current_asset.quantity < new.quantity then" in sql
-    assert "constraint = 'ck_transactions_sell_not_above_position'" in sql
-    assert "new_quantity := current_asset.quantity - new.quantity" in sql
-    assert "if new_quantity = 0 then delete from public.assets where id = current_asset.id" in sql
-    assert "new_cost_basis := current_asset.average_price * new_quantity" in sql
-    assert "average_price = current_asset.average_price" in sql
+    assert "create trigger if not exists trg_transactions_reject_oversell" in sql
+    assert "create trigger if not exists trg_transactions_reject_sell_without_position" in sql
+    assert "select raise(abort, 'sell quantity exceeds current position')" in sql
+    assert "create trigger if not exists trg_transactions_apply_asset_position_partial_sell" in sql
+    assert "create trigger if not exists trg_transactions_apply_asset_position_full_sell" in sql
+    assert "quantity = quantity - new.quantity" in sql
+    assert "cost_basis = average_price * (quantity - new.quantity)" in sql
+    assert "delete from assets" in sql
+    assert ") = new.quantity" in sql
 
 
 def test_transactions_trigger_is_bound_before_insert():
     sql = normalized(canonical_migration_sql())
 
-    assert "drop trigger if exists trg_transactions_apply_asset_position on public.transactions" in sql
-    assert "create trigger trg_transactions_apply_asset_position" in sql
-    assert "before insert on public.transactions" in sql
-    assert "for each row execute function public.apply_transaction_to_asset_position()" in sql
+    assert "create trigger if not exists trg_transactions_reject_oversell" in sql
+    assert "before insert on transactions" in sql
+    assert "create trigger if not exists trg_transactions_apply_asset_position_buy" in sql
+    assert "create trigger if not exists trg_transactions_apply_asset_position_partial_sell" in sql
+    assert "create trigger if not exists trg_transactions_apply_asset_position_full_sell" in sql
+    assert "after insert on transactions" in sql

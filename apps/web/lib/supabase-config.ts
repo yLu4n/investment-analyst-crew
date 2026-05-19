@@ -5,7 +5,7 @@ export type SupabasePublicConfig = {
 
 export function getSupabasePublicConfig(): SupabasePublicConfig | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
   if (!url || !anonKey || !isValidSupabaseConfig(url, anonKey)) {
     return null;
@@ -23,9 +23,10 @@ export function isValidSupabaseConfig(url: string | undefined, anonKey: string |
     const parsedUrl = new URL(url);
     const isAllowedProtocol = parsedUrl.protocol === "https:" || parsedUrl.hostname === "localhost";
     const hasHost = parsedUrl.hostname.length > 0;
-    const hasLikelyAnonKey = anonKey.length > 20 && anonKey.split(".").length === 3;
+    const hasLikelyLegacyAnonKey = anonKey.length > 20 && anonKey.split(".").length === 3;
+    const hasLikelyPublishableKey = anonKey.startsWith("sb_publishable_") && anonKey.length > 30;
 
-    return isAllowedProtocol && hasHost && hasLikelyAnonKey;
+    return isAllowedProtocol && hasHost && (hasLikelyLegacyAnonKey || hasLikelyPublishableKey);
   } catch {
     return false;
   }

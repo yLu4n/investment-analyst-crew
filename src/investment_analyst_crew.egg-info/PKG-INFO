@@ -13,7 +13,6 @@ Requires-Dist: litellm>=1.82.6
 Requires-Dist: openpyxl>=3.1.5
 Requires-Dist: pandas>=3.0.1
 Requires-Dist: pdfplumber>=0.11.9
-Requires-Dist: psycopg[binary]>=3.2.13
 Requires-Dist: pydantic>=2.11.10
 Requires-Dist: python-dotenv>=1.1.1
 Requires-Dist: reportlab>=4.4.10
@@ -62,12 +61,13 @@ Supabase (`sub`). O cliente não deve enviar `user_id` no payload.
 
 Nesta rodada, o job store e os caches de requisição/ativo usam implementação em
 memória com TTL de 24 horas. Eles foram isolados para troca posterior por
-PostgreSQL, Valkey e Celery, conforme ADR/SDD.
+servicos persistentes dedicados, conforme ADR/SDD.
 
 ## Banco de dados para testes
 
-Use `.env.test` para configurar o PostgreSQL usado pelos testes de integração.
-O arquivo real fica ignorado pelo Git.
+Os testes de integração de banco usam SQLite em memoria por padrao. Use
+`.env.test` apenas se quiser apontar para outro arquivo SQLite local. O arquivo
+real fica ignorado pelo Git.
 
 ```bash
 cp .env.test.example .env.test
@@ -76,12 +76,12 @@ cp .env.test.example .env.test
 Edite `.env.test` e preencha:
 
 ```env
-INVESTMENT_ANALYST_TEST_DATABASE_URL=postgresql+psycopg://investment_test:investment_test@localhost:5432/investment_analyst_test
+INVESTMENT_ANALYST_TEST_DATABASE_URL=sqlite:///investment_analyst_test.sqlite3
 ```
 
-Esse banco deve ser exclusivo para testes. Com a variável configurada, o teste
-`tests/test_postgres_migration_integration.py` aplica a migration versionada e
-valida a trigger de preço médio/hard delete no PostgreSQL real.
+Esse banco deve ser exclusivo para testes. O teste
+`tests/test_sqlite_migration_integration.py` aplica a migration versionada e
+valida as triggers de preco medio/hard delete no SQLite.
 
 ## Validação
 

@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 
 TEST_DATABASE_URL_ENV = "INVESTMENT_ANALYST_TEST_DATABASE_URL"
 DATABASE_URL_ENV = "DATABASE_URL"
+DEFAULT_DATABASE_URL = "sqlite:///investment_analyst.sqlite3"
+DEFAULT_TEST_DATABASE_URL = "sqlite:///:memory:"
 
 
 def load_database_env() -> None:
@@ -18,12 +20,12 @@ def load_database_env() -> None:
 
 def get_database_url() -> str | None:
     load_database_env()
-    return _blank_to_none(os.getenv(DATABASE_URL_ENV))
+    return _blank_to_none(os.getenv(DATABASE_URL_ENV)) or DEFAULT_DATABASE_URL
 
 
 def get_test_database_url() -> str | None:
     load_database_env()
-    return _blank_to_none(os.getenv(TEST_DATABASE_URL_ENV))
+    return _blank_to_none(os.getenv(TEST_DATABASE_URL_ENV)) or DEFAULT_TEST_DATABASE_URL
 
 
 def require_test_database_url() -> str:
@@ -43,10 +45,11 @@ def _blank_to_none(value: str | None) -> str | None:
 
 __all__ = [
     "DATABASE_URL_ENV",
+    "DEFAULT_DATABASE_URL",
+    "DEFAULT_TEST_DATABASE_URL",
     "TEST_DATABASE_URL_ENV",
     "get_database_url",
     "get_test_database_url",
     "load_database_env",
     "require_test_database_url",
 ]
-

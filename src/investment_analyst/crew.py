@@ -20,6 +20,7 @@ class InvestmentAnalystCrew:
     
     llm = get_llm()
 
+    """_summary_"""
     def __init__(self, report_output_path: str = "outputs/investment_report.md"):
         self.financial_data_tool = FinancialDataTool()
         self.news_scraper_tool = NewsScraperTool()

@@ -29,14 +29,36 @@ Payload mínimo:
     {"ticker": "PETR4", "quantity": 100, "average_price": 32.5}
   ],
   "risk_profile": "moderate",
-  "monthly_contribution": 1000,
-  "user_id": "user-1"
+  "monthly_contribution": 1000
 }
 ```
 
+Quando a autenticação estiver habilitada, a API deriva o usuário do token
+Supabase (`sub`). O cliente não deve enviar `user_id` no payload.
+
 Nesta rodada, o job store e os caches de requisição/ativo usam implementação em
 memória com TTL de 24 horas. Eles foram isolados para troca posterior por
-PostgreSQL, Valkey e Celery, conforme ADR/SDD.
+servicos persistentes dedicados, conforme ADR/SDD.
+
+## Banco de dados para testes
+
+Os testes de integração de banco usam SQLite em memoria por padrao. Use
+`.env.test` apenas se quiser apontar para outro arquivo SQLite local. O arquivo
+real fica ignorado pelo Git.
+
+```bash
+cp .env.test.example .env.test
+```
+
+Edite `.env.test` e preencha:
+
+```env
+INVESTMENT_ANALYST_TEST_DATABASE_URL=sqlite:///investment_analyst_test.sqlite3
+```
+
+Esse banco deve ser exclusivo para testes. O teste
+`tests/test_sqlite_migration_integration.py` aplica a migration versionada e
+valida as triggers de preco medio/hard delete no SQLite.
 
 ## Validação
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertCircle, FileUp, Loader2, Plus, RefreshCcw, Sparkles } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import { Header } from "@/components/header";
 import { PortfolioTable } from "@/components/portfolio-table";
@@ -30,6 +30,7 @@ export function Dashboard() {
   const [importError, setImportError] = useState<string | null>(null);
   const [manualAsset, setManualAsset] = useState({ ticker: "", quantity: "", average_price: "" });
   const [showUpsell, setShowUpsell] = useState(false);
+  const quantityInputRef = useRef<HTMLInputElement>(null);
 
   const createAnalysisMutation = useCreateAnalysis();
   const statusQuery = useAnalysisStatus(jobId);
@@ -93,11 +94,23 @@ export function Dashboard() {
     }
 
     setImportError(null);
-    setAssets((current) => [
-      ...current,
-      { ticker, quantity, average_price: averagePrice, asset_type: "stock" },
-    ]);
+    setAssets((current) => upsertAsset(current, { ticker, quantity, average_price: averagePrice, asset_type: "stock" }));
     setManualAsset({ ticker: "", quantity: "", average_price: "" });
+  }
+
+  function removeAsset(ticker: string) {
+    setAssets((current) => {
+      const next = current.filter((asset) => asset.ticker !== ticker);
+      const pageCount = Math.max(1, Math.ceil(next.length / 10));
+      setPage((currentPage) => Math.min(currentPage, pageCount));
+      return next;
+    });
+  }
+
+  function prepareAssetQuantityAddition(ticker: string) {
+    setManualAsset({ ticker, quantity: "", average_price: "" });
+    setImportError(null);
+    quantityInputRef.current?.focus();
   }
 
   async function submitAiAnalysis() {
@@ -162,6 +175,7 @@ export function Dashboard() {
               <div>
                 <Label>Quantidade</Label>
                 <Input
+                  ref={quantityInputRef}
                   inputMode="decimal"
                   value={manualAsset.quantity}
                   onChange={(event) => setManualAsset((asset) => ({ ...asset, quantity: event.target.value }))}
@@ -188,7 +202,13 @@ export function Dashboard() {
             </div>
 
             <div className="mt-4">
-              <PortfolioTable assets={assets} page={page} onPageChange={setPage} />
+              <PortfolioTable
+                assets={assets}
+                page={page}
+                onAddQuantity={prepareAssetQuantityAddition}
+                onPageChange={setPage}
+                onRemoveAsset={removeAsset}
+              />
             </div>
           </Card>
 
@@ -255,6 +275,29 @@ export function Dashboard() {
       <UpsellModal open={showUpsell} onClose={() => setShowUpsell(false)} />
     </>
   );
+}
+
+function upsertAsset(current: AssetInput[], incoming: AssetInput): AssetInput[] {
+  const existingIndex = current.findIndex((asset) => asset.ticker === incoming.ticker);
+  if (existingIndex === -1) {
+    return [...current, incoming];
+  }
+
+  return current.map((asset, index) => {
+    if (index !== existingIndex) {
+      return asset;
+    }
+
+    const quantity = asset.quantity + incoming.quantity;
+    const costBasis = asset.quantity * asset.average_price + incoming.quantity * incoming.average_price;
+
+    return {
+      ...asset,
+      quantity,
+      average_price: quantity > 0 ? costBasis / quantity : 0,
+      asset_type: asset.asset_type ?? incoming.asset_type,
+    };
+  });
 }
 
 function Metric({ title, value }: { title: string; value: string }) {
