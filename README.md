@@ -36,6 +36,45 @@ Payload mínimo:
 Quando a autenticação estiver habilitada, a API deriva o usuário do token
 Supabase (`sub`). O cliente não deve enviar `user_id` no payload.
 
+## Supabase
+
+O frontend usa Supabase Auth e envia o access token para a API. A API valida
+esse token com `SUPABASE_JWT_SECRET`; copie o valor em Supabase Dashboard >
+Project Settings > API > JWT Settings.
+
+Crie os arquivos de ambiente:
+
+```bash
+cp .env.example .env
+cp apps/web/.env.example apps/web/.env.local
+```
+
+Preencha:
+
+```env
+# .env
+DATABASE_URL=postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres?sslmode=require
+SUPABASE_JWT_SECRET=<jwt-secret>
+INVESTMENT_ANALYST_REQUIRE_AUTH=true
+
+# apps/web/.env.local
+NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-or-publishable-key>
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1
+```
+
+Para aplicar a schema no Supabase:
+
+```bash
+supabase link --project-ref <project-ref>
+supabase db push
+```
+
+A migration em `supabase/migrations` usa Postgres nativo, RLS por
+`auth.uid()`, chaves estrangeiras para `auth.users`, índices nos filtros por
+usuário/carteira/ticker e trigger para atualizar posições a partir de compras e
+vendas.
+
 Nesta rodada, o job store e os caches de requisição/ativo usam implementação em
 memória com TTL de 24 horas. Eles foram isolados para troca posterior por
 servicos persistentes dedicados, conforme ADR/SDD.

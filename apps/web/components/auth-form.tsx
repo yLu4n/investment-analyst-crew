@@ -53,7 +53,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
               plan: "free",
               credits: 0,
             },
-            emailRedirectTo: `${window.location.origin}/login`,
+            emailRedirectTo: `${window.location.origin}/auth/callback?next=/`,
           },
         })
       : await supabase.auth.signInWithPassword({ email, password });
@@ -86,7 +86,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
 
     setIsResetLoading(true);
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
-      redirectTo: `${window.location.origin}/alterar-senha`,
+      redirectTo: `${window.location.origin}/auth/callback?next=/alterar-senha`,
     });
     setIsResetLoading(false);
 
@@ -110,7 +110,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
     const { error: googleError } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: window.location.origin,
+        redirectTo: `${window.location.origin}/auth/callback?next=/`,
       },
     });
 

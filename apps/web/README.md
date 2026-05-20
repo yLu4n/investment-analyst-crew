@@ -14,6 +14,12 @@ Variaveis:
 - `NEXT_PUBLIC_API_BASE_URL`: URL da API FastAPI. Padrao: `http://localhost:8000/api/v1`.
 - `NEXT_PUBLIC_SUPABASE_URL`: URL do projeto Supabase.
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: chave anon publica do Supabase.
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`: alternativa para projetos que ja usam
+  a chave publishable nova do Supabase.
+
+Depois de preencher `.env.local`, o middleware valida a sessao com
+`supabase.auth.getUser()` e protege todas as rotas, exceto `/login` e
+`/cadastro` e `/auth/callback`.
 
 ## Desenvolvimento
 

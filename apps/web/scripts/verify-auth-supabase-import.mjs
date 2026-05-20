@@ -91,7 +91,7 @@ const checks = [
     name: "password reset redirects users to the change password screen",
     pass:
       source.authForm.includes("resetPasswordForEmail") &&
-      source.authForm.includes('redirectTo: `${window.location.origin}/alterar-senha`'),
+      source.authForm.includes('redirectTo: `${window.location.origin}/auth/callback?next=/alterar-senha`'),
   },
   {
     name: "authenticated password change updates Supabase auth password",

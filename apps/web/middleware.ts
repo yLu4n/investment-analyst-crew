@@ -37,7 +37,7 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const publicPaths = new Set(["/login", "/cadastro"]);
+  const publicPaths = new Set(["/login", "/cadastro", "/auth/callback"]);
   const isPublicPath = publicPaths.has(request.nextUrl.pathname);
   if (!user && !isPublicPath) {
     const redirectUrl = request.nextUrl.clone();

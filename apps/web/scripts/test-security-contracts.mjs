@@ -407,7 +407,7 @@ test("auth UI and session bootstrap use safe auth paths and env validation messa
   assert.match(authForm, /MIN_PASSWORD_LENGTH = 8/);
   assert.match(authForm, /isPasswordStrongEnough\(password\)/);
   assert.match(authForm, /resetPasswordForEmail\(normalizedEmail/);
-  assert.match(authForm, /redirectTo: `\$\{window\.location\.origin\}\/alterar-senha`/);
+  assert.match(authForm, /redirectTo: `\$\{window\.location\.origin\}\/auth\/callback\?next=\/alterar-senha`/);
   assert.match(passwordChangeForm, /MIN_PASSWORD_LENGTH = 8/);
   assert.match(passwordChangeForm, /hasPasswordIdentity\(user\)/);
   assert.match(passwordChangeForm, /supabase\.auth\.updateUser\(\{ password \}\)/);
