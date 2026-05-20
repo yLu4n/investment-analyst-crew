@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Plus, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pencil, Plus, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui";
 import { getPaginatedAssets } from "@/lib/api";
@@ -11,12 +11,14 @@ export function PortfolioTable({
   assets,
   page,
   onAddQuantity,
+  onEditAsset,
   onPageChange,
   onRemoveAsset,
 }: {
   assets: AssetInput[];
   page: number;
   onAddQuantity: (ticker: string) => void;
+  onEditAsset: (ticker: string) => void;
   onPageChange: (page: number) => void;
   onRemoveAsset: (ticker: string) => void;
 }) {
@@ -52,6 +54,15 @@ export function PortfolioTable({
                     onClick={() => onAddQuantity(asset.ticker)}
                   >
                     <Plus size={15} />
+                  </Button>
+                  <Button
+                    aria-label={`Editar ${asset.ticker}`}
+                    title="Editar ativo"
+                    variant="secondary"
+                    className="h-8 w-8 px-0"
+                    onClick={() => onEditAsset(asset.ticker)}
+                  >
+                    <Pencil size={15} />
                   </Button>
                   <Button
                     aria-label={`Remover ${asset.ticker}`}

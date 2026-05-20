@@ -1,7 +1,7 @@
 "use client";
 
-import { AlertCircle, FileUp, Loader2, Plus, RefreshCcw, Sparkles } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { AlertCircle, FileUp, Loader2, Plus, RefreshCcw, Sparkles, X } from "lucide-react";
+import { useMemo, useState } from "react";
 
 import { Header } from "@/components/header";
 import { PortfolioTable } from "@/components/portfolio-table";
@@ -19,6 +19,29 @@ const DEFAULT_ASSETS: AssetInput[] = [
   { ticker: "ITSA4", quantity: 180, average_price: 10.2, asset_type: "stock" },
 ];
 const TICKER_PATTERN = /^[A-Z0-9.]{1,20}$/;
+const ASSET_TYPE_OPTIONS = [
+  { value: "stock", label: "Acoes" },
+  { value: "fii", label: "FIIs" },
+  { value: "fixed_income", label: "Renda fixa" },
+  { value: "fund", label: "Fundos" },
+  { value: "crypto", label: "Cripto" },
+  { value: "other", label: "Outros" },
+];
+const ASSET_TYPE_COLORS = ["#0f766e", "#2563eb", "#ca8a04", "#dc2626", "#7c3aed", "#475569", "#0891b2", "#16a34a"];
+type AssetFormState = { ticker: string; quantity: string; average_price: string; asset_type: string };
+type AssetModalState =
+  | { mode: "add" }
+  | { mode: "edit"; ticker: string }
+  | null;
+type AssetTypeSlice = {
+  type: string;
+  label: string;
+  value: number;
+  percentage: number;
+  color: string;
+};
+
+const EMPTY_ASSET_FORM: AssetFormState = { ticker: "", quantity: "", average_price: "", asset_type: "stock" };
 
 export function Dashboard() {
   const { credits, isPro, consumeCredit } = useSessionState();
@@ -28,9 +51,10 @@ export function Dashboard() {
   const [monthlyContribution, setMonthlyContribution] = useState(1000);
   const [jobId, setJobId] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
-  const [manualAsset, setManualAsset] = useState({ ticker: "", quantity: "", average_price: "" });
+  const [assetForm, setAssetForm] = useState<AssetFormState>(EMPTY_ASSET_FORM);
+  const [assetFormError, setAssetFormError] = useState<string | null>(null);
+  const [assetModal, setAssetModal] = useState<AssetModalState>(null);
   const [showUpsell, setShowUpsell] = useState(false);
-  const quantityInputRef = useRef<HTMLInputElement>(null);
 
   const createAnalysisMutation = useCreateAnalysis();
   const statusQuery = useAnalysisStatus(jobId);
@@ -47,6 +71,7 @@ export function Dashboard() {
     }
     return Math.max(...assets.map((asset) => asset.quantity * asset.average_price)) / totalAllocated;
   }, [assets, totalAllocated]);
+  const assetTypeBreakdown = useMemo(() => getAssetTypeBreakdown(assets), [assets]);
   const deterministicRisk = largestAssetWeight > 0.45 ? "Concentrada" : "Balanceada";
   const analysisBlocked = !isPro || credits === 0;
 
@@ -73,29 +98,41 @@ export function Dashboard() {
     }
   }
 
-  function addManualAsset() {
-    const ticker = manualAsset.ticker.trim().toUpperCase();
-    const quantity = Number(manualAsset.quantity);
-    const averagePrice = Number(manualAsset.average_price);
+  function submitAssetForm() {
+    if (!assetModal) {
+      return;
+    }
+
+    const ticker = assetForm.ticker.trim().toUpperCase();
+    const quantity = Number(assetForm.quantity);
+    const averagePrice = Number(assetForm.average_price);
+    const assetType = normalizeAssetType(assetForm.asset_type);
 
     if (!TICKER_PATTERN.test(ticker)) {
-      setImportError("Ticker deve conter ate 20 caracteres alfanumericos.");
+      setAssetFormError("Ticker deve conter ate 20 caracteres alfanumericos.");
       return;
     }
 
     if (!Number.isFinite(quantity) || !Number.isFinite(averagePrice)) {
-      setImportError("Preencha ticker, quantidade e preco medio com valores validos.");
+      setAssetFormError("Preencha ticker, quantidade e preco medio com valores validos.");
       return;
     }
 
     if (quantity <= 0 || averagePrice < 0) {
-      setImportError("Quantidade deve ser maior que zero e preco medio nao pode ser negativo.");
+      setAssetFormError("Quantidade deve ser maior que zero e preco medio nao pode ser negativo.");
       return;
     }
 
-    setImportError(null);
-    setAssets((current) => upsertAsset(current, { ticker, quantity, average_price: averagePrice, asset_type: "stock" }));
-    setManualAsset({ ticker: "", quantity: "", average_price: "" });
+    if (!assetType) {
+      setAssetFormError("Selecione o tipo do ativo.");
+      return;
+    }
+
+    setAssetFormError(null);
+    const nextAsset = { ticker, quantity, average_price: averagePrice, asset_type: assetType };
+
+    setAssets((current) => (assetModal.mode === "edit" ? updateAsset(current, nextAsset) : upsertAsset(current, nextAsset)));
+    closeAssetModal();
   }
 
   function removeAsset(ticker: string) {
@@ -108,9 +145,46 @@ export function Dashboard() {
   }
 
   function prepareAssetQuantityAddition(ticker: string) {
-    setManualAsset({ ticker, quantity: "", average_price: "" });
+    const asset = assets.find((currentAsset) => currentAsset.ticker === ticker);
+    setAssetForm({
+      ticker,
+      quantity: "",
+      average_price: asset?.average_price.toString() ?? "",
+      asset_type: asset?.asset_type ?? "stock",
+    });
+    setAssetModal({ mode: "add" });
+    setAssetFormError(null);
     setImportError(null);
-    quantityInputRef.current?.focus();
+  }
+
+  function openAssetCreation() {
+    setAssetForm(EMPTY_ASSET_FORM);
+    setAssetModal({ mode: "add" });
+    setAssetFormError(null);
+    setImportError(null);
+  }
+
+  function openAssetEdition(ticker: string) {
+    const asset = assets.find((currentAsset) => currentAsset.ticker === ticker);
+    if (!asset) {
+      return;
+    }
+
+    setAssetForm({
+      ticker: asset.ticker,
+      quantity: asset.quantity.toString(),
+      average_price: asset.average_price.toString(),
+      asset_type: asset.asset_type ?? "stock",
+    });
+    setAssetModal({ mode: "edit", ticker: asset.ticker });
+    setAssetFormError(null);
+    setImportError(null);
+  }
+
+  function closeAssetModal() {
+    setAssetModal(null);
+    setAssetForm(EMPTY_ASSET_FORM);
+    setAssetFormError(null);
   }
 
   async function submitAiAnalysis() {
@@ -163,42 +237,11 @@ export function Dashboard() {
               </div>
             )}
 
-            <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_120px_140px_auto]">
-              <div>
-                <Label>Ticker</Label>
-                <Input
-                  value={manualAsset.ticker}
-                  onChange={(event) => setManualAsset((asset) => ({ ...asset, ticker: event.target.value }))}
-                  placeholder="BBDC4"
-                />
-              </div>
-              <div>
-                <Label>Quantidade</Label>
-                <Input
-                  ref={quantityInputRef}
-                  inputMode="decimal"
-                  value={manualAsset.quantity}
-                  onChange={(event) => setManualAsset((asset) => ({ ...asset, quantity: event.target.value }))}
-                  placeholder="100"
-                />
-              </div>
-              <div>
-                <Label>Preco medio</Label>
-                <Input
-                  inputMode="decimal"
-                  value={manualAsset.average_price}
-                  onChange={(event) =>
-                    setManualAsset((asset) => ({ ...asset, average_price: event.target.value }))
-                  }
-                  placeholder="12.50"
-                />
-              </div>
-              <div className="flex items-end">
-                <Button className="w-full" variant="secondary" onClick={addManualAsset}>
-                  <Plus size={16} />
-                  Adicionar
-                </Button>
-              </div>
+            <div className="mt-4 flex justify-end">
+              <Button variant="secondary" onClick={openAssetCreation}>
+                <Plus size={16} />
+                Adicionar ativo
+              </Button>
             </div>
 
             <div className="mt-4">
@@ -206,6 +249,7 @@ export function Dashboard() {
                 assets={assets}
                 page={page}
                 onAddQuantity={prepareAssetQuantityAddition}
+                onEditAsset={openAssetEdition}
                 onPageChange={setPage}
                 onRemoveAsset={removeAsset}
               />
@@ -229,6 +273,8 @@ export function Dashboard() {
               <Metric title="Risco" value={deterministicRisk} />
               <Metric title="Ativos" value={String(assets.length)} />
             </div>
+
+            <AssetTypeChart slices={assetTypeBreakdown} total={totalAllocated} />
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <div>
@@ -272,6 +318,14 @@ export function Dashboard() {
           </Card>
         </div>
       </main>
+      <AssetModal
+        error={assetFormError}
+        form={assetForm}
+        mode={assetModal?.mode ?? null}
+        onCancel={closeAssetModal}
+        onChange={setAssetForm}
+        onSubmit={submitAssetForm}
+      />
       <UpsellModal open={showUpsell} onClose={() => setShowUpsell(false)} />
     </>
   );
@@ -298,6 +352,210 @@ function upsertAsset(current: AssetInput[], incoming: AssetInput): AssetInput[] 
       asset_type: asset.asset_type ?? incoming.asset_type,
     };
   });
+}
+
+function updateAsset(current: AssetInput[], incoming: AssetInput): AssetInput[] {
+  return current.map((asset) =>
+    asset.ticker === incoming.ticker
+      ? {
+          ...asset,
+          quantity: incoming.quantity,
+          average_price: incoming.average_price,
+          asset_type: incoming.asset_type,
+        }
+      : asset,
+  );
+}
+
+function getAssetTypeBreakdown(assets: AssetInput[]): AssetTypeSlice[] {
+  const totalsByType = assets.reduce<Record<string, number>>((totals, asset) => {
+    const type = normalizeAssetType(asset.asset_type ?? "stock") || "other";
+    const value = asset.quantity * asset.average_price;
+    return { ...totals, [type]: (totals[type] ?? 0) + value };
+  }, {});
+  const total = Object.values(totalsByType).reduce((sum, value) => sum + value, 0);
+
+  if (total <= 0) {
+    return [];
+  }
+
+  return Object.entries(totalsByType)
+    .sort(([, firstValue], [, secondValue]) => secondValue - firstValue)
+    .map(([type, value]) => ({
+      type,
+      label: getAssetTypeLabel(type),
+      value,
+      percentage: value / total,
+      color: getAssetTypeColor(type),
+    }));
+}
+
+function normalizeAssetType(assetType: string) {
+  return assetType.trim().toLowerCase().replace(/\s+/g, "_").slice(0, 64);
+}
+
+function getAssetTypeLabel(type: string) {
+  return ASSET_TYPE_OPTIONS.find((option) => option.value === type)?.label ?? type.replace(/_/g, " ").toUpperCase();
+}
+
+function getAssetTypeColor(type: string) {
+  const knownTypeIndex = ASSET_TYPE_OPTIONS.findIndex((option) => option.value === type);
+  if (knownTypeIndex >= 0) {
+    return ASSET_TYPE_COLORS[knownTypeIndex % ASSET_TYPE_COLORS.length];
+  }
+
+  const hash = Array.from(type).reduce((total, character) => total + character.charCodeAt(0), 0);
+  return ASSET_TYPE_COLORS[hash % ASSET_TYPE_COLORS.length];
+}
+
+function getChartBackground(slices: AssetTypeSlice[]) {
+  let currentPercentage = 0;
+  const segments = slices.map((slice) => {
+    const start = currentPercentage;
+    currentPercentage += slice.percentage * 100;
+    return `${slice.color} ${start}% ${currentPercentage}%`;
+  });
+
+  return `conic-gradient(${segments.join(", ")})`;
+}
+
+function AssetTypeChart({ slices, total }: { slices: AssetTypeSlice[]; total: number }) {
+  const chartBackground = slices.length > 0 ? getChartBackground(slices) : "hsl(var(--muted))";
+
+  return (
+    <div className="mt-4 rounded-lg border border-border bg-background p-3">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-semibold">Tipos de ativos</h3>
+          <p className="mt-1 text-xs text-muted-foreground">Distribuicao por valor investido</p>
+        </div>
+        <span className="text-sm font-medium">{formatCurrency(total)}</span>
+      </div>
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-[132px_1fr] sm:items-center">
+        <div className="relative mx-auto h-32 w-32 rounded-full" style={{ background: chartBackground }}>
+          <div className="absolute inset-5 rounded-full bg-background" />
+        </div>
+
+        <div className="grid gap-2">
+          {slices.length === 0 && <p className="text-sm text-muted-foreground">Nenhum ativo para exibir.</p>}
+          {slices.map((slice) => (
+            <div key={slice.type} className="grid grid-cols-[auto_1fr_auto] items-center gap-2 text-sm">
+              <span className="h-3 w-3 rounded-sm" style={{ backgroundColor: slice.color }} />
+              <span className="truncate">{slice.label}</span>
+              <span className="font-medium">{formatPercent(slice.percentage)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AssetModal({
+  error,
+  form,
+  mode,
+  onCancel,
+  onChange,
+  onSubmit,
+}: {
+  error: string | null;
+  form: AssetFormState;
+  mode: "add" | "edit" | null;
+  onCancel: () => void;
+  onChange: (form: AssetFormState) => void;
+  onSubmit: () => void;
+}) {
+  if (!mode) {
+    return null;
+  }
+
+  const isEdit = mode === "edit";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 py-6">
+      <div
+        aria-modal="true"
+        role="dialog"
+        className="w-full max-w-md rounded-lg border border-border bg-card p-4 text-card-foreground shadow-subtle"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold">{isEdit ? "Editar ativo" : "Adicionar ativo"}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {isEdit ? "Ajuste os valores atuais da posicao." : "Informe os dados obrigatorios da compra."}
+            </p>
+          </div>
+          <Button aria-label="Fechar modal" className="h-8 w-8 px-0" variant="ghost" onClick={onCancel}>
+            <X size={17} />
+          </Button>
+        </div>
+
+        {error && (
+          <div className="mt-4 flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm">
+            <AlertCircle size={17} className="shrink-0 text-destructive" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <div className="mt-4 grid gap-3">
+          <div>
+            <Label>Ticker</Label>
+            <Input
+              disabled={isEdit}
+              required
+              value={form.ticker}
+              onChange={(event) => onChange({ ...form, ticker: event.target.value })}
+              placeholder="BBDC4"
+            />
+          </div>
+          <div>
+            <Label>Quantidade</Label>
+            <Input
+              autoFocus
+              required
+              inputMode="decimal"
+              value={form.quantity}
+              onChange={(event) => onChange({ ...form, quantity: event.target.value })}
+              placeholder="100"
+            />
+          </div>
+          <div>
+            <Label>Preco medio</Label>
+            <Input
+              required
+              inputMode="decimal"
+              value={form.average_price}
+              onChange={(event) => onChange({ ...form, average_price: event.target.value })}
+              placeholder="12.50"
+            />
+          </div>
+          <div>
+            <Label>Tipo</Label>
+            <Select
+              required
+              value={form.asset_type}
+              onChange={(event) => onChange({ ...form, asset_type: event.target.value })}
+            >
+              {ASSET_TYPE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </Select>
+          </div>
+        </div>
+
+        <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button variant="secondary" onClick={onCancel}>
+            Cancelar
+          </Button>
+          <Button onClick={onSubmit}>{isEdit ? "Salvar" : "Adicionar"}</Button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function Metric({ title, value }: { title: string; value: string }) {
